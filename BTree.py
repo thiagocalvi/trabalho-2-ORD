@@ -7,7 +7,9 @@ class BTree:
         self.btree = None
         self.controle_n_pagina : int = 0
         self.ORDEM : int = ORDEM
-
+        self.tamanho_registro : int = 2 + ((2 * (self.ORDEM - 1)) * 4) + (self.ORDEM * 4)
+        #4 bytes para cada: chave, byteoffser e rrn das filhas
+        #2 bytes são do numero de chaves na pagina 
 
     def ler_raiz(self) -> int:
         self.btree.seek(0)
@@ -27,6 +29,7 @@ class BTree:
         #ler a pagina armazenada no rrn para pag
         #calcular o byteoffset
 
+
         pag : Pag = Pag(self.ORDEM) #somente ilustrativo
         achou, pos = self.buscar_na_pagina(chave, pag)
 
@@ -36,8 +39,7 @@ class BTree:
             #busca na arvore filha
             return self.buscar_na_arvore(chave, pag.filhos[pos])
 
-
-    def buscar_na_pagina(self, chave, pagina : Pag):
+    def buscar_na_pagina(self, chave, pagina : Pag) -> list:
         pos = 0
         while pos < pagina.n_chaves & chave > pagina.chaves[pos]:
             pos += 1
@@ -53,9 +55,9 @@ class BTree:
             return chavePro, filhoDpro, True
         
         else:
-            #TO-DO
+            #TO-DO - FEITO
             #ler pagina armazenada no rrnAtual
-            pag : Pag = Pag(self.ORDEM)
+            pag : Pag = self.ler_pagina(rrnAtual)
             achou, pos = self.buscar_na_pagina(chave, pag)
             
             if achou:
@@ -78,3 +80,21 @@ class BTree:
                         return chavePro, filhoDpro, True
                 else:
                     return None, None, False
+
+    def ler_pagina(self, rrnPagina : int) -> Pag:
+        pagina : Pag = Pag(self.ORDEM)
+        byteOffsetPagina : int = rrnPagina * self.tamanho_registro + 4
+        self.btree.seek(byteOffsetPagina)
+        pagina.n_chaves = struct.unpack("H", self.btree.read(2))[0]
+
+        for x in range(self.ORDEM - 1):
+            chave : int = struct.unpack("I", self.btree.read(4))[0]
+            pagina.chaves.append(chave)
+            byteOffset : int = struct.unpack("I", self.btree.read(4))[0]
+            pagina.offsets.append(byteOffset)
+
+        for i in range(self.ORDEM):
+            filho : int = struct.unpack("I", self.btree.read(4))[0]
+            pagina.filhos.append(filho)
+
+        return pagina

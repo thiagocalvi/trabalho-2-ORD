@@ -24,16 +24,17 @@ def main():
     option = sys.argv[1]
 
     if option == '-c':
-        #Verificar se arquivo btree.bat já existe 
+        #Verificar se arquivo btree.dat já existe 
         if os.path.isfile("./btree.bat"):
             #se existir pede para usuario se quer substituir
-            op : str = input("Já existe um arquivo btree.bat, quer substituilo? [s/N]: ")
+            op : str = input("Já existe um arquivo btree.dat, quer substituilo? [s/N]: ")
             if op == "N" or op == "n":
                 return
         else:
             #Receber do usuario a ordem da arvore
             ORDEM = int(input("Informe a ordem da arvore (inteiro maior ou igual a 2): "))
-            btree = BTree("games",ORDEM)
+            btree = BTree("games.dat", ORDEM)
+            
             #criar indice no arquivo btree.bat
             #-> chamar função btree.criar_indice()
 
