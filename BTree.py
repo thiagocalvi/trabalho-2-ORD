@@ -66,7 +66,7 @@ class BTree:
         pAtual.filhos = pagina.filhos[:meio + 1] + [-1] * (self.ORDEM - (meio + 1))
         pAtual.n_chaves = meio
         
-        pNova.chaves = pagina.chaves[meio + 1:] + [[-1, -1]] * (self.ORDEM - 1 - (pagina.n_chaves - (meio + 1)))
+        pNova.chaves = pagina.chaves[meio:] + [[-1, -1]] * (self.ORDEM - 1 - (pagina.n_chaves - (meio + 1)))
         pNova.filhos = pagina.filhos[meio + 1:] + [-1] * (self.ORDEM - (pagina.n_chaves - (meio + 1)))
         pNova.n_chaves = pagina.n_chaves - (meio + 1)
         
@@ -89,7 +89,7 @@ class BTree:
             else:
                 chavePro, filhoDpro, promo = self.inserir_na_arvore(chave, pag.filhos[pos])
                 if promo:
-                    if pag.n_chaves - (self.ORDEM - 1) >= 1:
+                    if pag.n_chaves - (self.ORDEM - 1) <=0:
                         #TO-DO - Verificar a lógica
                         #inserir chavePro e filhoDpro em pag
                         self.inserir_na_pagina(chavePro,filhoDpro, byteOffset)
