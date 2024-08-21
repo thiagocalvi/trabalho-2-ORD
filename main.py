@@ -1,4 +1,4 @@
-import sys, os
+import sys, os, struct
 from BTree import BTree
 
 def ler_opracoes(arquivo_operacoes):
@@ -12,10 +12,11 @@ def ler_opracoes(arquivo_operacoes):
     else:
         return None, None
 
-
 def main():
     ORDEM : int
     btree : BTree
+
+    
 
     if len(sys.argv) < 2:
         print("Uso: programa <opção> || programa <opção> [arquivo_operacoes]")
@@ -25,19 +26,20 @@ def main():
 
     if option == '-c':
         #Verificar se arquivo btree.dat já existe 
-        if os.path.isfile("./btree.bat"):
+        if os.path.isfile("./btree.dat"):
             #se existir pede para usuario se quer substituir
             op : str = input("Já existe um arquivo btree.dat, quer substituilo? [s/N]: ")
             if op == "N" or op == "n":
                 return
-        else:
-            #Receber do usuario a ordem da arvore
-            ORDEM = int(input("Informe a ordem da arvore (inteiro maior ou igual a 2): "))
-            btree = BTree("games.dat", ORDEM)
-            
-            #criar indice no arquivo btree.bat
-            #-> chamar função btree.criar_indice()
-
+        
+        #Receber do usuario a ordem da arvore
+        ORDEM = int(input("Informe a ordem da arvore (inteiro maior ou igual a 2): "))
+        #Cria objeto btree
+        btree = BTree("games.dat", ORDEM)
+        #Cria o indece em btree.dat
+        btree.criar_indice()
+        btree.btree.close()
+        
     elif option == '-p':
         #Verifica se o arquivo btree.bat existe
         if os.path.isfile("./btree.bat"):
@@ -65,6 +67,7 @@ def main():
 
                 
                 elif operacao == "i":
+
                     pass
         
     else:
