@@ -1,6 +1,11 @@
 import struct
 from Pag import Pag
 
+'''
+No arquivo btree.dat os 4 primeiros bytes armazenam a quatidade de paginas
+e os proximos 4 bits armazenam o rrn da raiz
+'''
+
 class BTree:
     def __init__(self, arquivo_games : str, ORDEM : int = 4, controle_rrn : int = 0) -> None:   
         self.arquivo_games = open(arquivo_games, 'rb+')
@@ -12,31 +17,57 @@ class BTree:
         #2 bytes são do numero de chaves na pagina 
 
     def ler_raiz(self) -> int:
-        self.btree.seek(0)
+        self.btree.seek(4)
         raiz : int = struct.unpack("I", self.btree.read(4))[0]
         return raiz
     
     def escrever_raiz(self, nova_raiz) -> None:
         raiz : bytes = struct.pack("I", nova_raiz)
-        self.btree.seek(0)
+        self.btree.seek(4)
         self.btree.write(raiz)
 
-    def ler_registros(self):
+    def ler_q_paginas(self) -> int:
+        self.btree.seek(0)
+        q_paginas : int = struct.unpack("I", self.btree.read(4))[0]
+        return q_paginas
+
+    def add_q_paginas(self) -> None:
+        #adiciona 1 ao numero de pagina e escreve no arquivo btree.dat
+        q_paginas : int = self.ler_q_paginas()
+        q_paginas += 1
+        self.btree.seek(0)
+        q_paginas = struct.pack("I", q_paginas)
+        self.btree.write(q_paginas)
+
+    def ler_registro(self, tam=0):
+        #retorna a chave e o byteOffset do registro
         self.arquivo_games.seek(4)
         tam_registro = struct.unpack("H", self.arquivo_games.read(2))[0]
         reg = self.arquivo_games.read(tam_registro).decode()
         reg = reg.split("|")
         chave = int(reg[0])
-        byteOffset = 4
+        #ta dando erro aqui
+        byteOffset = 4 + tam
         print(chave, byteOffset)
-        return chave, byteOffset
+        return chave, byteOffset, tam_registro
 
     def criar_indice(self):
         btreeFile = open("btree.dat", 'wb+')
         self.btree = btreeFile
+    
         pag : Pag = Pag(self.ORDEM)
-        self.escrever_raiz(0)
         self.escrever_pagina(0, pag)
+        self.escrever_raiz(0)
+
+
+        chave, byt, tam = self.ler_registro()
+        self.inserir_na_arvore(chave, byt, self.ler_raiz()) 
+        self.add_q_paginas()
+
+        chave, byt, tam = self.ler_registro(tam)
+        self.inserir_na_arvore(chave, byt, self.ler_raiz()) 
+        self.add_q_paginas()
+
         pagina = self.ler_pagina(0)
         print(pagina.chaves, pagina.filhos)
         #chave, byteOffset = self.ler_registros()
@@ -89,9 +120,9 @@ class BTree:
         return chavePro, byteoffsetPro, filhoDpro, pAtual, pNova
 
     def inserir_na_arvore(self, chave : int, byteOffset : int, rrnAtual : int):
-        if rrnAtual == None :
+        if rrnAtual == -1 :
             chavePro = chave
-            filhoDpro = None
+            filhoDpro = -1
             return chavePro, filhoDpro, True
         
         else:
@@ -108,7 +139,7 @@ class BTree:
                     if pag.n_chaves - (self.ORDEM - 1) <=0:
                         #TO-DO - Verificar a lógica
                         #inserir chavePro e filhoDpro em pag
-                        self.inserir_na_pagina(chavePro,filhoDpro, byteOffset)
+                        self.inserir_na_pagina(chavePro,filhoDpro, pag, byteOffset)
                         #escrever pag no arquivo em rrnAtual
                         self.escrever_pagina(rrnAtual ,pag)
                         
@@ -123,7 +154,7 @@ class BTree:
                         self.escrever_pagina(filhoDpro, novaPag)
                         return chavePro, filhoDpro, True
                 else:
-                    return None, None, False
+                    return -1, -1, False
 
     def buscar_na_pagina(self, chave, pagina : Pag) -> list:
         pos : int = 0
