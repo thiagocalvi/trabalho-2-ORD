@@ -1,4 +1,5 @@
 import sys, os, struct
+from Pag import Pag
 from BTree import BTree
 
 def ler_opracoes(arquivo_operacoes):
@@ -13,8 +14,8 @@ def ler_opracoes(arquivo_operacoes):
         return None, None
 
 def main():
-    ORDEM : int
-    btree : BTree
+    ORDEM : int = 8
+    bTree : BTree
 
     
 
@@ -23,29 +24,30 @@ def main():
         return
 
     option = sys.argv[1]
+    
+    bTree = BTree("games.dat", ORDEM)
 
     if option == '-c':
-        #Verificar se arquivo btree.dat já existe 
-        if os.path.isfile("./btree.dat"):
-            #se existir pede para usuario se quer substituir
-            op : str = input("Já existe um arquivo btree.dat, quer substituilo? [s/N]: ")
-            if op == "N" or op == "n":
-                return
         
-        #Receber do usuario a ordem da arvore
-        ORDEM = int(input("Informe a ordem da arvore (inteiro maior ou igual a 2): "))
-        #Cria objeto btree
-        btree = BTree("games.dat", ORDEM)
-        #Cria o indece em btree.dat
-        btree.criar_indice()
-        btree.btree.close()
+        btreeFile = open("btree.dat", 'wb+')
+        bTree.setBtree(btreeFile)
+
+        bTree.escrever_raiz(0)
+    
+        raiz = bTree.gerenciadorInsercao(0)
+        bTree.escrever_raiz(raiz)
+        bTree.btree.close()
         
     elif option == '-p':
-        #Verifica se o arquivo btree.bat existe
-        if os.path.isfile("./btree.bat"):
+        #Verifica se o arquivo btree.dat existe
+        if os.path.isfile("./btree.dat"):
             #se existe
             #Imprimir a arvore no cosole
             #-> chamar função btree.print_btree()
+            btreeFile = open("btree.dat", 'rb')
+            bTree.setBtree(btreeFile)
+            bTree.print_btree()
+            bTree.btree.close()
             pass
         else:
             #se não existe lança um erro
@@ -61,9 +63,9 @@ def main():
             operacao, dado = ler_opracoes(arquivo_operacoes)
             while operacao != None:
                 if operacao == "b":
-                    raiz : int = btree.ler_raiz()
+                    raiz : int = bTree.ler_raiz()
                     chave : int = int(dado)
-                    achou, rrn, pos = btree.buscar_na_arvore(chave, raiz)
+                    achou, rrn, pos = bTree.buscar_na_arvore(chave, raiz)
 
                 
                 elif operacao == "i":
