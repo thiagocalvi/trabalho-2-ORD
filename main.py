@@ -13,7 +13,7 @@ def ler_opracoes(arquivo_operacoes):
             return None, None
 
 def main():
-    ORDEM : int = 8
+    ORDEM : int = 5
     bTree : BTree
 
     if len(sys.argv) < 2:
@@ -102,6 +102,13 @@ def main():
                         print(f"Registro sendo inserido: {dado} \n")
                         bTree.arquivo_games.write(struct.pack("H", tam))
                         bTree.arquivo_games.write(dado.encode())
+                        
+                        bTree.arquivo_games.seek(0)
+                        q_reg : int = struct.unpack("I" , bTree.arquivo_games.read(4))[0]
+                        q_reg+=1
+                        bTree.arquivo_games.seek(0)
+                        bTree.arquivo_games.write(struct.pack("I", q_reg))
+
                         bTree.arquivo_games.close()
                         bTree.btree.close()
                     except:
