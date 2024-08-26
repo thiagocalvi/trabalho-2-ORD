@@ -13,7 +13,7 @@ def ler_opracoes(arquivo_operacoes):
             return None, None
 
 def main():
-    ORDEM : int = 5
+    ORDEM : int = 8
     bTree : BTree
 
     if len(sys.argv) < 2:
@@ -22,7 +22,7 @@ def main():
 
     option = sys.argv[1]  
     bTree = BTree(ORDEM)
-    arquivo_games_name = "games20.dat"
+    arquivo_games_name = "games.dat"
 
     if option == '-c':
         btreeFile = open("btree.dat", 'wb+')
@@ -34,7 +34,9 @@ def main():
         bTree.criar_indice()
 
         bTree.btree.close()
-        bTree.arquivo_games.close()      
+        bTree.arquivo_games.close()    
+
+        print("Indice criado!\n")  
 
     elif option == '-p':
         #Verifica se o arquivo btree.dat existe
@@ -73,7 +75,7 @@ def main():
                         bTree.arquivo_games.seek(byteOffset)
                         tam = struct.unpack("H", arquivo_games.read(2))[0]
                         reg = bTree.arquivo_games.read(tam).decode()
-                        print(f"Registro: {reg}\n")
+                        print(f"Registro de chave {chave} encontrado {reg}\n")
                         bTree.arquivo_games.close()
                         bTree.btree.close()
                     else:
@@ -90,20 +92,23 @@ def main():
                     tam = len(dado)
                     chave = int(dado.split("|")[0])
 
-                    #inserir no arquivo games
-                    bTree.arquivo_games.seek(0, 2)
-                    byteOffset : int = bTree.arquivo_games.tell()
-                    bTree.arquivo_games.write(struct.pack("H", tam))
-                    bTree.arquivo_games.write(dado.encode())
-                    bTree.arquivo_games.close()
+                   
+                    try:
+                         #inserir no arquivo btree.dat
+                        bTree.gerenciador(chave, byteOffset)
+                        
+                        bTree.arquivo_games.seek(0, 2)
+                        byteOffset : int = bTree.arquivo_games.tell()
+                        print(f"Registro sendo inserido: {dado} \n")
+                        bTree.arquivo_games.write(struct.pack("H", tam))
+                        bTree.arquivo_games.write(dado.encode())
+                        bTree.arquivo_games.close()
+                        bTree.btree.close()
+                    except:
+                        print(f"Registro de chave {chave} duplicado!\n")
+                        bTree.arquivo_games.close()
+                        bTree.btree.close()
 
-                    print(f"Registro sendo inserido: {dado}\n")
-
-                    bTree.gerenciador(chave, byteOffset)
-                    #bTree.arquivo_games.close()
-                    bTree.btree.close()
-                    #pass
-                
                 operacao, dado = ler_opracoes(arquivo_operacoes)
         
             print("Operaçãoes finalizadas!")

@@ -55,9 +55,9 @@ class BTree:
             tam_registro = struct.unpack("H", self.arquivo_games.read(2))[0]
             reg = self.arquivo_games.read(tam_registro).decode()
             reg = reg.split("|")
-            print(reg)
+            #print(reg)
             chave = int(reg[0])
-            print(chave, byteOffset)
+            #print(chave, byteOffset)
             return chave, byteOffset
         except:
             return False, False
@@ -134,6 +134,7 @@ class BTree:
         
         else:
             if pag.n_chaves < (self.ORDEM - 1):
+                #print(pag.chaves, pag.filhos)
                 self.inserir_na_pagina(chavePro, filhoDpro, pag, byteOffset)
                 self.escrever_pagina(rrnAtual ,pag)
                 return -1, -1, False, -1
@@ -173,6 +174,7 @@ class BTree:
 
     def escrever_pagina(self, rrn : int, pagina : Pag) -> None:
         #Escreve uma pagina no rrn informado
+        #print(f"Pagiana sendo escrita: chaves: {pagina.chaves}, \n filhos: {pagina.filhos}, no rrn {rrn}")
         byteOffset : int = rrn * self.tamanho_registro + 8
         buffer = b''
         buffer += struct.pack("H", pagina.n_chaves)
