@@ -7,28 +7,35 @@ e os proximos 4 bits armazenam o rrn da raiz
 '''
 
 class BTree:
-    def __init__(self, arquivo_games : str, ORDEM : int = 4) -> None:   
-        self.arquivo_games = open(arquivo_games, 'rb+')
+    def __init__(self, ORDEM : int = 4) -> None:   
+        self.arquivo_games = None
         self.btree = None
         self.ORDEM : int = ORDEM
         self.tamanho_registro : int = 2 + ((2 * (self.ORDEM - 1)) * 4) + (self.ORDEM * 4)
         #4 bytes para cada: chave, byteoffser e rrn das filhas
         #2 bytes são do numero de chaves na pagina 
 
-    def setBtree(self, bt):
+    def setBtree(self, bt) -> None:
         self.btree = bt
+
+    def setArqGames(self, arquivo_games_name):
+        self.arquivo_games = arquivo_games_name
+
         
     def ler_raiz(self) -> int:
+        #Lê a raiz da arvore no arquivo btree.dat
         self.btree.seek(4)
         raiz : int = struct.unpack("I", self.btree.read(4))[0]
         return raiz
     
     def escrever_raiz(self, nova_raiz) -> None:
+        #Escreve a raiz no arquivo btree.dat
         raiz : bytes = struct.pack("I", nova_raiz)
         self.btree.seek(4)
         self.btree.write(raiz)
 
     def ler_q_paginas(self) -> int:
+        #Lê a quantidade de paginas no arquivo btree.dat
         self.btree.seek(0)
         q_paginas : int = struct.unpack("I", self.btree.read(4))[0]
         return q_paginas
@@ -42,7 +49,7 @@ class BTree:
         self.btree.write(q_paginas)
 
     def ler_registro(self) -> tuple:
-        #retorna a chave e o byteOffset do registro
+        #Lê os registro do arquivo games
         try:
             byteOffset = self.arquivo_games.tell()
             tam_registro = struct.unpack("H", self.arquivo_games.read(2))[0]
@@ -56,7 +63,8 @@ class BTree:
             return False, False
         
     def buscar_na_arvore(self, chave : int, rrn : int) -> tuple:
-        if rrn == None : return False, None, None
+        #Busca uma chave na arvore
+        if rrn == -1 : return False, None, None
 
         pagina : Pag = Pag(self.ORDEM)
         pagina = self.ler_pagina(rrn)
@@ -70,91 +78,76 @@ class BTree:
             return self.buscar_na_arvore(chave, pagina.filhos[pos])
 
     def novo_rrn(self) -> int:
+        #Existe outra forma de fazer isso
+        #Caso tenha tempo implementar de outra forma sem usar o tell()
         self.btree.seek(0, 2)
         offset = self.btree.tell()
         return (offset - 8) // self.tamanho_registro
 
-    def divide(self, chave : int, filhoD : int, byteOffset : int, pagina : Pag):
-        print("Função divide")
-        print(pagina.chaves, pagina.filhos)
-        
-        # Inserir a chave na página antes de dividir
+    def divide(self, chave: int, filhoD: int, byteOffset: int, pagina: Pag):
+        #Divide uma pagina 
         self.inserir_na_pagina(chave, filhoD, pagina, byteOffset)
-        print(pagina.chaves, pagina.filhos)
+        meio: int = self.ORDEM // 2
         
-        # Encontrar o ponto de divisão
-        meio : int = self.ORDEM // 2
-        
-        # Chave e byteOffset a serem promovidos
         chavePro = pagina.chaves[meio][0]
         byteoffsetPro = pagina.chaves[meio][1]
         filhoDpro = self.novo_rrn()
+        self.add_q_paginas()
         
-        # Criar as novas páginas
         pAtual = Pag(self.ORDEM)
         pNova = Pag(self.ORDEM)
-
-        # Atribuir chaves e filhos para pAtual e pNova
-        pAtual.chaves = pagina.chaves[:meio] + [[-1, -1]] * (self.ORDEM - 1 - meio)
-        pAtual.filhos = pagina.filhos[:meio + 1] + [-1] * (self.ORDEM - (meio + 1))
-        pAtual.n_chaves = meio
-
-        # pNova recebe o restante das chaves e filhos
-        pNova.chaves = pagina.chaves[meio + 1:] + [[-1, -1]] * (self.ORDEM - 1 - (pagina.n_chaves - (meio + 1)))
-        pNova.filhos = pagina.filhos[meio + 1:] + [-1] * (self.ORDEM - (pagina.n_chaves - (meio + 1)))
-        pNova.n_chaves = len(pNova.chaves)
         
-        print(f"Pagina atual: {pAtual.chaves}, {pAtual.filhos}")
-        print(f"Pagina nova: {pNova.chaves}, {pNova.filhos}")
+        # Atribuir chaves e filhos para pAtual
+        pAtual.n_chaves = meio
+        for i in range(meio):
+            pAtual.chaves[i] = pagina.chaves[i]
+        for i in range(meio + 1):
+            pAtual.filhos[i] = pagina.filhos[i]
+        
+        # pNova recebe o restante das chaves e filhos
+        pNova.n_chaves = pagina.n_chaves - meio - 1
+        for i in range(pNova.n_chaves):
+            pNova.chaves[i] = pagina.chaves[meio + 1 + i]
+        for i in range(pNova.n_chaves + 1):
+            pNova.filhos[i] = pagina.filhos[meio + 1 + i]
 
         return chavePro, byteoffsetPro, filhoDpro, pAtual, pNova
 
-
-    def inserir_na_arvore(self, chave : int, byteOffset : int, rrnAtual : int):
+    def inserir_na_arvore(self, chave : int, byteOffset : int, rrnAtual : int, x = -1):
+        #Insere uma chave\byteoffser na arvore
         if rrnAtual == -1 :
             chavePro = chave
             filhoDpro = -1
-            return chavePro, filhoDpro, True
+            return chavePro, filhoDpro, True, -1
         
         else:
-            #TO-DO - FEITO
-            #ler pagina armazenada no rrnAtual
             pag : Pag = self.ler_pagina(rrnAtual)
             achou, pos = self.buscar_na_pagina(chave, pag)
             
         if achou:
             raise ValueError("Chave duplicada")
             
-        chavePro, filhoDpro, promo = self.inserir_na_arvore(chave, byteOffset, pag.filhos[pos])
+        chavePro, filhoDpro, promo, byteoffsetPro = self.inserir_na_arvore(chave, byteOffset, pag.filhos[pos])
         
         if not promo:
-            return -1, -1, False
+            return -1, -1, False, -1
         
         else:
             if pag.n_chaves < (self.ORDEM - 1):
-                #TO-DO - Verificar a lógica
-                #inserir chavePro e filhoDpro em pag
-                print(pag.chaves, pag.filhos)
                 self.inserir_na_pagina(chavePro, filhoDpro, pag, byteOffset)
-                #escrever pag no arquivo em rrnAtual
                 self.escrever_pagina(rrnAtual ,pag)
-                return -1, -1, False
+                return -1, -1, False, -1
                         
             else:
-                #TO-DO
-                #criar função divide
-                chavePro, byteOffset, filhoDpro, pag, novaPag = self.divide(chavePro, filhoDpro, byteOffset, pag)
-                #TO-DO
-                #escrever pag no arquivo em rrnAtual
+                chavePro, byteoffsetPro, filhoDpro, pag, novaPag = self.divide(chavePro, filhoDpro, byteOffset, pag)
                 self.escrever_pagina(rrnAtual, pag)
-                #escrever novaPag no arquivo em filhoDpro
                 self.escrever_pagina(filhoDpro, novaPag)
-                #self.add_q_paginas()
-                return chavePro, filhoDpro, True
+                return chavePro, filhoDpro, True, byteoffsetPro
             
     def buscar_na_pagina(self, chave, pagina : Pag) -> list:
+        #Busca uma chave na pagina informada
         pos : int = 0
-        while pos < pagina.n_chaves & chave > pagina.chaves[pos][0]:
+        while pos < pagina.n_chaves and chave > pagina.chaves[pos][0]:
             pos += 1
         
         if pos < pagina.n_chaves and chave == pagina.chaves[pos][0]:
@@ -162,7 +155,8 @@ class BTree:
         else:
             return False, pos
 
-    def inserir_na_pagina(self, chave : int, filhoD : int, pagina : Pag, byteOffset : int):
+    def inserir_na_pagina(self, chave : int, filhoD : int, pagina : Pag, byteOffset : int) -> None:
+        #Insere uma chave\byteoffset e filho direito na pagina informada
         if pagina.n_chaves == (self.ORDEM - 1):
             pagina.chaves.append([-1, -1])
             pagina.filhos.append(-1)
@@ -177,9 +171,8 @@ class BTree:
         pagina.filhos[i + 1] = filhoD
         pagina.n_chaves += 1
 
-    #Finalizado e testado
     def escrever_pagina(self, rrn : int, pagina : Pag) -> None:
-        print(f"Pagiana sendo escrita: chaves: {pagina.chaves}, \n filhos: {pagina.filhos}")
+        #Escreve uma pagina no rrn informado
         byteOffset : int = rrn * self.tamanho_registro + 8
         buffer = b''
         buffer += struct.pack("H", pagina.n_chaves)
@@ -194,71 +187,89 @@ class BTree:
         self.btree.seek(byteOffset)
         self.btree.write(buffer)
 
-    #Finalizado e testado
     def ler_pagina(self, rrnPagina : int) -> Pag:
+        #Lê uma pagina armazenada no rrn informado
         pagina : Pag = Pag(self.ORDEM)
         byteOffsetPagina : int = rrnPagina * self.tamanho_registro + 8
         self.btree.seek(byteOffsetPagina)
         
         pagina.n_chaves = struct.unpack("H", self.btree.read(2))[0]
-       # print(pagina.n_chaves)
 
         for x in range(self.ORDEM - 1):
             chave : int = struct.unpack("i", self.btree.read(4))[0]
             byteOffset : int = struct.unpack("i", self.btree.read(4))[0]
             pagina.chaves[x] = [chave, byteOffset]
 
-            #pagina.chaves[x][0] = chave
-            #print(pagina.chaves[x][0])
-            #pagina.chaves[x][1] = byteOffset
-            #print(pagina.chaves[x][1])
-
         for i in range(self.ORDEM):
             filho : int = struct.unpack("i", self.btree.read(4))[0]
             pagina.filhos[i] = filho
-            #print(pagina.filhos[i])
-
-        #print(pagina.chaves, pagina.filhos)
 
         return pagina
 
-    def gerenciadorInsercao(self, raiz):
+    def criar_indice(self) -> None:
+        #Cria o indece da arvore b no arquivo btree.dat
+        self.escrever_raiz(0)
+        raiz : int = 0
+        self.add_q_paginas()
         self.arquivo_games.seek(4)
         pg = Pag(self.ORDEM)
         self.escrever_pagina(raiz, pg)
-        self.add_q_paginas()
 
         chave, byteOffset = self.ler_registro()
         while chave != False:
-            raiz = self.ler_raiz()
-            print(f"Raiz: {raiz}")
             
-            chavePro, filhoDpro, promocao = self.inserir_na_arvore(chave, byteOffset, raiz)
-
+            chavePro, filhoDpro, promocao, byteoffsetPro = self.inserir_na_arvore(chave, byteOffset, raiz)
+            
             if promocao:
                 pagina = Pag(self.ORDEM)
                 self.add_q_paginas()
-                dado = [chavePro, byteOffset]
+                dado = [chavePro, byteoffsetPro]
                 pagina.chaves[0] = dado
                 pagina.filhos[0] = raiz
                 pagina.filhos[1] = filhoDpro
                 pagina.n_chaves += 1
-                print(pagina.chaves, pagina.filhos)
-                self.escrever_raiz(self.ler_q_paginas())
-                
-                self.escrever_pagina(self.ler_raiz(), pagina)
-                print(f"NOVA Raiz: {self.ler_raiz()}")
+                raiz = self.novo_rrn()
+                self.escrever_raiz(raiz)
+                self.escrever_pagina(raiz, pagina)
 
             chave, byteOffset = self.ler_registro()
 
-        return raiz
-
-
-    def print_btree(self):
-        q_paginas = self.ler_q_paginas()
-        print(q_paginas)
-        raiz = self.ler_raiz()
-        for x in range(19):
-            print(x)
+    def print_btree(self) -> None:
+        #Imprime o indice da arvore b que está no arquivo btree.dat
+        q_paginas : int = self.ler_q_paginas()
+        raiz : int = self.ler_raiz()
+        for x in range(q_paginas):
             pagina : Pag = self.ler_pagina(x)
-            print(pagina.chaves, pagina.filhos)
+            chaves : list = [chave[0] for chave in pagina.chaves if chave[0] != -1]
+            bytesOffset : list = [chave[1] for chave in pagina.chaves if chave[1] != -1]
+            if x == raiz:
+                print(f"----------------------------- Raiz -----------------------------")
+                print(f"Pagina: {x}")
+                print(f"Chaves: {chaves}")
+                print(f"Offsets: {bytesOffset}")
+                print(f"Filhos: {pagina.filhos}")
+                print(f"----------------------------------------------------------------\n")
+
+            else:
+                print(f"Pagina: {x}")
+                print(f"Chaves: {chaves}")
+                print(f"Offsets: {bytesOffset}")
+                print(f"Filhos: {pagina.filhos}\n")
+        
+        print("O índice \"btree.dat\" foi impresso com sucesso!")
+
+
+    def gerenciador(self, chave : int, byteOffset : int):
+        raiz : int = self.ler_raiz()
+        chavePro, filhoDpro, promocao, byteoffsetPro = self.inserir_na_arvore(chave, byteOffset, raiz)
+        if promocao:
+            pagina = Pag(self.ORDEM)
+            self.add_q_paginas()
+            dado = [chavePro, byteoffsetPro]
+            pagina.chaves[0] = dado
+            pagina.filhos[0] = raiz
+            pagina.filhos[1] = filhoDpro
+            pagina.n_chaves += 1
+            raiz = self.novo_rrn()
+            self.escrever_raiz(raiz)
+            self.escrever_pagina(raiz, pagina)

@@ -3,52 +3,47 @@ from Pag import Pag
 from BTree import BTree
 
 def ler_opracoes(arquivo_operacoes):
-    linha : str = arquivo_operacoes.readline()
-    if linha != " ":
-        conteudo : list[str] = linha.split(maxsplit=1)
-        operacao = conteudo[0]
-        dado : str = conteudo[1].rsplit("\n")
-        return operacao, dado
-    
-    else:
-        return None, None
+    try:
+            linha : str = arquivo_operacoes.readline()
+            conteudo : list[str] = linha.split(" ", maxsplit=1)
+            operacao = conteudo[0]
+            dado : str = conteudo[1].rsplit("\n")
+            return operacao, dado
+    except:
+            return None, None
 
 def main():
-    ORDEM : int = 8
+    ORDEM : int = 5
     bTree : BTree
-
-    
 
     if len(sys.argv) < 2:
         print("Uso: programa <opção> || programa <opção> [arquivo_operacoes]")
         return
 
-    option = sys.argv[1]
-    
-    bTree = BTree("games.dat", ORDEM)
+    option = sys.argv[1]  
+    bTree = BTree(ORDEM)
+    arquivo_games_name = "games20.dat"
 
     if option == '-c':
-        
         btreeFile = open("btree.dat", 'wb+')
-        bTree.setBtree(btreeFile)
+        arquivo_games = open(arquivo_games_name, 'rb+')
 
-        bTree.escrever_raiz(0)
-    
-        raiz = bTree.gerenciadorInsercao(0)
-        bTree.escrever_raiz(raiz)
+        bTree.setBtree(btreeFile)
+        bTree.setArqGames(arquivo_games)
+
+        bTree.criar_indice()
+
         bTree.btree.close()
-        
+        bTree.arquivo_games.close()      
+
     elif option == '-p':
         #Verifica se o arquivo btree.dat existe
         if os.path.isfile("./btree.dat"):
-            #se existe
-            #Imprimir a arvore no cosole
-            #-> chamar função btree.print_btree()
             btreeFile = open("btree.dat", 'rb')
             bTree.setBtree(btreeFile)
             bTree.print_btree()
             bTree.btree.close()
-            pass
+            
         else:
             #se não existe lança um erro
             raise FileNotFoundError("Arquivo btree.bat não foi encontrado")
@@ -61,17 +56,58 @@ def main():
             nome_arquivo_operacoes : str = sys.argv[2]
             arquivo_operacoes = open(nome_arquivo_operacoes, 'r')
             operacao, dado = ler_opracoes(arquivo_operacoes)
+
             while operacao != None:
                 if operacao == "b":
+                    btreeFile = open("btree.dat", 'rb')
+                    bTree.setBtree(btreeFile)
                     raiz : int = bTree.ler_raiz()
-                    chave : int = int(dado)
+                    chave : int = int(dado[0])
                     achou, rrn, pos = bTree.buscar_na_arvore(chave, raiz)
+                    
+                    if achou:
+                        pagina : Pag = bTree.ler_pagina(rrn)
+                        byteOffset = pagina.chaves[pos][1]
+                        arquivo_games = open(arquivo_games_name, 'rb')
+                        bTree.setArqGames(arquivo_games)
+                        bTree.arquivo_games.seek(byteOffset)
+                        tam = struct.unpack("H", arquivo_games.read(2))[0]
+                        reg = bTree.arquivo_games.read(tam).decode()
+                        print(f"Registro: {reg}\n")
+                        bTree.arquivo_games.close()
+                        bTree.btree.close()
+                    else:
+                        bTree.btree.close()
+                        print("Registro não encontrado!\n")
 
-                
                 elif operacao == "i":
+                    btreeFile = open("btree.dat", 'rb+')
+                    bTree.setBtree(btreeFile)
 
-                    pass
+                    arquivo_games = open(arquivo_games_name, 'rb+')
+                    bTree.setArqGames(arquivo_games)
+                    dado = dado[0]
+                    tam = len(dado)
+                    chave = int(dado.split("|")[0])
+
+                    #inserir no arquivo games
+                    bTree.arquivo_games.seek(0, 2)
+                    byteOffset : int = bTree.arquivo_games.tell()
+                    bTree.arquivo_games.write(struct.pack("H", tam))
+                    bTree.arquivo_games.write(dado.encode())
+                    bTree.arquivo_games.close()
+
+                    print(f"Registro sendo inserido: {dado}\n")
+
+                    bTree.gerenciador(chave, byteOffset)
+                    #bTree.arquivo_games.close()
+                    bTree.btree.close()
+                    #pass
+                
+                operacao, dado = ler_opracoes(arquivo_operacoes)
         
+            print("Operaçãoes finalizadas!")
+            arquivo_operacoes.close()
     else:
         print("Opção inválida")
 
