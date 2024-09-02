@@ -193,18 +193,24 @@ class BTree:
         pagina : Pag = Pag(self.ORDEM)
         byteOffsetPagina : int = rrnPagina * self.tamanho_registro + 8
         self.btree.seek(byteOffsetPagina)
+        buffer = self.btree.read(self.tamanho_registro)
         
-        pagina.n_chaves = struct.unpack("H", self.btree.read(2))[0]
-
+        pagina.n_chaves = struct.unpack("H", buffer[:2])[0]
+        # Separar chaves e byteOffsets
+        offset = 2
         for x in range(self.ORDEM - 1):
-            chave : int = struct.unpack("i", self.btree.read(4))[0]
-            byteOffset : int = struct.unpack("i", self.btree.read(4))[0]
+            chave: int = struct.unpack("i", buffer[offset:offset + 4])[0]
+            offset += 4
+            byteOffset: int = struct.unpack("i", buffer[offset:offset + 4])[0]
+            offset += 4
             pagina.chaves[x] = [chave, byteOffset]
 
+        # Separar filhos
         for i in range(self.ORDEM):
-            filho : int = struct.unpack("i", self.btree.read(4))[0]
+            filho: int = struct.unpack("i", buffer[offset:offset + 4])[0]
+            offset += 4
             pagina.filhos[i] = filho
-
+        
         return pagina
 
     def criar_indice(self) -> None:
