@@ -242,7 +242,7 @@ class BTree:
         for x in range(q_paginas):
             pagina : Pag = self.ler_pagina(x)
             chaves : list = [chave[0] for chave in pagina.chaves if chave[0] != -1] + [-1] * (self.ORDEM - 1 - pagina.n_chaves)  
-            bytesOffset : list = [chave[1] for chave in pagina.chaves if chave[1] != -1] + [-1] * (self.ORDEM - pagina.n_chaves)
+            bytesOffset : list = [chave[1] for chave in pagina.chaves if chave[1] != -1] + [-1] * (self.ORDEM - 1 - pagina.n_chaves)
             if x == raiz:
                 print(f"----------------------------- Raiz -----------------------------")
                 print(f"Pagina: {x}")
