@@ -174,7 +174,6 @@ class BTree:
 
     def escrever_pagina(self, rrn : int, pagina : Pag) -> None:
         #Escreve uma pagina no rrn informado
-        #print(f"Pagiana sendo escrita: chaves: {pagina.chaves}, \n filhos: {pagina.filhos}, no rrn {rrn}")
         byteOffset : int = rrn * self.tamanho_registro + 8
         buffer = b''
         buffer += struct.pack("H", pagina.n_chaves)
