@@ -13,7 +13,7 @@ def ler_opracoes(arquivo_operacoes):
             return None, None
 
 def main():
-    ORDEM : int = 5
+    ORDEM : int = 8
     bTree : BTree
 
     if len(sys.argv) < 2:
