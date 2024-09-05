@@ -55,9 +55,7 @@ class BTree:
             tam_registro = struct.unpack("H", self.arquivo_games.read(2))[0]
             reg = self.arquivo_games.read(tam_registro).decode()
             reg = reg.split("|")
-            #print(reg)
             chave = int(reg[0])
-            #print(chave, byteOffset)
             return chave, byteOffset
         except:
             return False, False
@@ -78,8 +76,6 @@ class BTree:
             return self.buscar_na_arvore(chave, pagina.filhos[pos])
 
     def novo_rrn(self) -> int:
-        #Existe outra forma de fazer isso
-        #Caso tenha tempo implementar de outra forma sem usar o tell()
         self.btree.seek(0, 2)
         offset = self.btree.tell()
         return (offset - 8) // self.tamanho_registro
@@ -134,7 +130,6 @@ class BTree:
         
         else:
             if pag.n_chaves < (self.ORDEM - 1):
-                #print(pag.chaves, pag.filhos)
                 self.inserir_na_pagina(chavePro, filhoDpro, pag, byteOffset)
                 self.escrever_pagina(rrnAtual ,pag)
                 return -1, -1, False, -1
